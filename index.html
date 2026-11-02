@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="GOLD AMN + SMC XAUUSD trading analysis tool">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GOLD AMN">
+<title>GOLD AMN + SMC Analyzer</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#131e30;--line:#26364e;--muted:#9aabc2;--gold:#f4c45e;--green:#38c88a;--red:#f07878}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#edf3fb;font:15px system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:22px 17px 15px;background:linear-gradient(135deg,#182942,#0b1220);border-bottom:1px solid var(--line)}
+h1{font-size:21px;margin:0 0 5px}header p{margin:0;color:var(--muted);font-size:13px}
+main{max-width:760px;margin:auto;padding:14px;display:grid;gap:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:15px}
+h2{font-size:16px;margin:0 0 12px}.muted,.hint{color:var(--muted);font-size:12px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+input,select,button{font:inherit}input,select{width:100%;background:#0b1423;color:#fff;border:1px solid #34445d;border-radius:9px;padding:11px}
+button{border:0;border-radius:10px;padding:12px 14px;background:var(--gold);color:#172033;font-weight:750;cursor:pointer}
+button.secondary{background:#26364e;color:#edf3fb}button:disabled{opacity:.5}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.status{font-size:25px;font-weight:800;letter-spacing:.4px}.buy{color:var(--green)}.sell{color:var(--red)}.wait{color:var(--gold)}
+.pill{display:inline-block;padding:4px 8px;border-radius:99px;background:#26364e;color:#d9e4f3;font-size:11px;margin:3px 4px 3px 0}
+.metric{background:#0b1423;border:1px solid var(--line);border-radius:10px;padding:10px}.metric b{display:block;font-size:16px;margin-top:4px}
+details{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}summary{cursor:pointer;font-weight:650}
+iframe{width:100%;height:390px;border:0;border-radius:10px;background:#0b1423}
+small{color:var(--muted)}.log{padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+footer{padding:8px 16px 28px;text-align:center;color:var(--muted);font-size:11px}
+@media(max-width:430px){.grid{grid-template-columns:1fr 1fr}iframe{height:340px}}
+</style></head>
+<body>
+<header><h1>🥇 GOLD AMN + SMC ANALYZER</h1><p>XAUUSD · 4H confirmation · 15M bias · 1M execution</p></header>
+<main>
+<section class="card">
+<h2>Live Gold chart</h2>
+<div class="hint">TradingView chart embed. The chart is live where TradingView provides the feed; this standalone file does not read TradingView's private chart data.</div>
+<div style="margin-top:10px"><iframe title="TradingView XAUUSD chart" src="https://www.tradingview.com/widgetembed/?frameElementId=tv_chart&symbol=OANDA%3AXAUUSD&interval=15&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&theme=dark&style=1&timezone=Africa%2FKampala&withdateranges=1&hideideas=1&studies=%5B%5D"></iframe></div>
+</section>
+<section class="card">
+<h2>1. Load candle data</h2>
+<p class="hint">Export OHLC candles as CSV from your charting platform for each timeframe. Each file should contain columns named time, open, high, low, close (case-insensitive). Upload the 4H, 15M and 1M files.</p>
+<div class="grid">
+<div><label>4H candles (direction)</label><input id="f4" type="file" accept=".csv,text/csv"></div>
+<div><label>15M candles (bias)</label><input id="f15" type="file" accept=".csv,text/csv"></div>
+<div><label>1M candles (entry)</label><input id="f1" type="file" accept=".csv,text/csv"></div>
+<div><label>Account balance (USD)</label><input id="balance" type="number" min="0" step="0.01" value="100"></div>
+</div>
+<div class="actions"><button id="analyze">Analyze XAUUSD</button><button class="secondary" id="demo">Load demo candles</button></div>
+<div class="hint" id="loadmsg" aria-live="polite">No candle data loaded yet. Demo data is illustrative only, not a live signal.</div>
+</section>
+<section class="card">
+<h2>2. AMN + SMC decision</h2>
+<div id="signal" class="status wait">WAIT</div>
+<div id="summary" class="muted">Upload the three timeframe CSV files, then analyze.</div>
+<div style="margin-top:10px" class="grid">
+<div class="metric"><small>4H direction</small><b id="d4">—</b></div>
+<div class="metric"><small>15M bias</small><b id="d15">—</b></div>
+<div class="metric"><small>Liquidity sweep</small><b id="sweep">—</b></div>
+<div class="metric"><small>Market structure shift</small><b id="mss">—</b></div>
+<div class="metric"><small>1M confirmation</small><b id="confirm">—</b></div>
+<div class="metric"><small>Setup type</small><b id="setup">—</b></div>
+</div>
+<details><summary>How the analyzer checks the setup</summary>
+<p class="hint">This prototype uses recent candle swing levels as a mechanical approximation: a sweep is a wick beyond a prior local high/low followed by a close back inside; MSS is a close beyond a recent opposing swing; 1M confirmation checks for a directional candle after the sequence. It is not a full discretionary SMC interpretation. A valid signal requires the sequence in order: sweep → MSS → 1M confirmation, with 4H and 15M not contradicting the trade.</p>
+</details>
+</section>
+<section class="card">
+<h2>3. Risk and trade calculator</h2>
+<div class="grid">
+<div><label>Entry price</label><input id="entry" type="number" step="0.01" placeholder="e.g. 2750.00"></div>
+<div><label>Stop-loss price</label><input id="sl" type="number" step="0.01" placeholder="e.g. 2745.00"></div>
+<div><label>Take-profit price</label><input id="tp" type="number" step="0.01" placeholder="e.g. 2760.00"></div>
+<div><label>Risk (%) — maximum 1%</label><input id="risk" type="number" min="0.1" max="1" step="0.1" value="1"></div>
+</div>
+<div class="actions"><button id="calc">Calculate position</button></div>
+<div class="grid" style="margin-top:10px">
+<div class="metric"><small>Maximum risk</small><b id="riskcash">—</b></div>
+<div class="metric"><small>Estimated lot size*</small><b id="lots">—</b></div>
+<div class="metric"><small>Risk/reward</small><b id="rr">—</b></div>
+<div class="metric"><small>Stop distance</small><b id="dist">—</b></div>
+</div>
+<p class="hint">*Lot estimate assumes a standard XAUUSD contract of 100 troy ounces per 1.00 lot and a USD account. Confirm the exact contract size, tick value, volume step and margin in Exness MT5 before placing a trade. Calculator does not place orders.</p>
+</section>
+<section class="card">
+<h2>4. Trade journal</h2>
+<div class="grid">
+<div><label>Trade result / note</label><input id="note" placeholder="e.g. BUY, +$8, followed plan"></div>
+<div style="display:flex;align-items:end"><button id="save" style="width:100%">Save journal entry</button></div>
+</div>
+<div id="journal" class="hint" style="margin-top:10px">No journal entries yet.</div>
+</section>
+<section class="card">
+<h2>Important safeguards</h2>
+<p class="hint">This is an analysis assistant, not a guaranteed-profit system. It will return WAIT when the required sequence is missing or the timeframes conflict. Never risk more than 1% of account equity on a trade. Test on a demo account first; news, spread, slippage and broker contract specifications can change results.</p>
+</section>
+</main><footer>GOLD AMN + SMC Analyzer · Manual execution only · No VPS or automatic Exness orders</footer>
+<script>
+const $=id=>document.getElementById(id);
+let data={h4:[],m15:[],m1:[]},lastSignal='WAIT';
+function parseCSV(txt){
+ const lines=txt.trim().split(/\r?\n/); if(lines.length<5)throw Error('CSV needs a header and at least 4 candles');
+ const head=lines.shift().split(',').map(x=>x.trim().toLowerCase().replace(/"/g,''));
+ const idx=k=>head.findIndex(x=>x===k||x.includes(k));
+ const oi=['open','high','low','close'].map(idx);
+ if(oi.some(x=>x<0))throw Error('CSV must include open, high, low and close columns');
+ const rows=lines.map(line=>{let a=line.split(',').map(x=>x.trim().replace(/"/g,''));return {time:a[idx('time')]||'',open:+a[oi[0]],high:+a[oi[1]],low:+a[oi[2]],close:+a[oi[3]]}})
+ .filter(x=>[x.open,x.high,x.low,x.close].every(Number.isFinite)&&x.high>=x.low);
+ if(rows.length<4)throw Error('Not enough valid OHLC rows'); return rows.slice(-500);
+}
+async function loadFile(id,key){let f=$(id).files[0];if(f)data[key]=parseCSV(await f.text())}
+function trend(a){
+ let x=a.slice(-12);let up=0,down=0;
+ for(let i=2;i<x.length;i++){if(x[i].high>x[i-1].high&&x[i-1].high>x[i-2].high)up++;if(x[i].low>x[i-1].low&&x[i-1].low>x[i-2].low)up++;if(x[i].high<x[i-1].high&&x[i-1].high<x[i-2].high)down++;if(x[i].low<x[i-1].low&&x[i-1].low<x[i-2].low)down++}
+ return up>down?'BULLISH':down>up?'BEARISH':'NEUTRAL';
+}
+function analyze(){
+ const a=data.m1,b=data.m15,c=data.h4;
+ if([a,b,c].some(x=>x.length<10)){ $('loadmsg').textContent='Please load at least 10 candles for each timeframe.';return}
+ const t4=trend(c),t15=trend(b), recent=a.slice(-8), prior=a.slice(-14,-8);
+ const priorHigh=Math.max(...prior.map(x=>x.high)),priorLow=Math.min(...prior.map(x=>x.low));
+ const last=recent[recent.length-1], sweptLow=recent.some(x=>x.low<priorLow&&x.close>priorLow),sweptHigh=recent.some(x=>x.high>priorHigh&&x.close<priorHigh);
+ const swingHigh=Math.max(...a.slice(-7,-2).map(x=>x.high)),swingLow=Math.min(...a.slice(-7,-2).map(x=>x.low));
+ const bullMSS=last.close>swingHigh,bearMSS=last.close<swingLow;
+ const bullConfirm=last.close>last.open&&last.close>a[a.length-2].high;
+ const bearConfirm=last.close<last.open&&last.close<a[a.length-2].low;
+ let direction='WAIT',setup='NONE',why='Required sequence not confirmed.';
+ // Sequence is approximated by checking sweep in earlier candles and MSS/confirmation in later candles.
+ const sweepIdxLow=recent.findIndex(x=>x.low<priorLow&&x.close>priorLow),sweepIdxHigh=recent.findIndex(x=>x.high>priorHigh&&x.close<priorHigh);
+ const laterLow=sweepIdxLow>=0&&recent.slice(sweepIdxLow+1).some(x=>x.close>swingHigh);
+ const laterHigh=sweepIdxHigh>=0&&recent.slice(sweepIdxHigh+1).some(x=>x.close<swingLow);
+ if(sweptLow&&laterLow&&bullConfirm&&t4!=='BEARISH'&&t15!=='BEARISH'){direction='BUY';setup=t4==='BULLISH'&&t15==='BULLISH'?'CONTINUATION':'REVERSAL';why='Low-side liquidity sweep → bullish MSS → bullish 1M confirmation.'}
+ else if(sweptHigh&&laterHigh&&bearConfirm&&t4!=='BULLISH'&&t15!=='BULLISH'){direction='SELL';setup=t4==='BEARISH'&&t15==='BEARISH'?'CONTINUATION':'REVERSAL';why='High-side liquidity sweep → bearish MSS → bearish 1M confirmation.'}
+ $('signal').textContent=direction;$('signal').className='status '+(direction==='BUY'?'buy':direction==='SELL'?'sell':'wait');
+ $('summary').textContent=why+' This is a rule-based screening result; inspect the chart before any trade.';
+ $('d4').textContent=t4;$('d15').textContent=t15;$('sweep').textContent=sweptLow?'LOW swept':sweptHigh?'HIGH swept':'Not found';
+ $('mss').textContent=(laterLow?'Bullish':laterHigh?'Bearish':'Not confirmed');$('confirm').textContent=bullConfirm?'Bullish':bearConfirm?'Bearish':'Not confirmed';$('setup').textContent=setup;lastSignal=direction;
+ $('loadmsg').textContent=`Loaded ${c.length} 4H, ${b.length} 15M and ${a.length} 1M candles.`;
+}
+$('analyze').onclick=async()=>{try{await loadFile('f4','h4');await loadFile('f15','m15');await loadFile('f1','m1');analyze()}catch(e){$('loadmsg').textContent=e.message}};
+$('demo').onclick=()=>{function series(n,base,step){let p=base,out=[];for(let i=0;i<n;i++){let o=p,cl=p+(Math.sin(i*.7)*step*.7)+(i%7===0?step:0),h=Math.max(o,cl)+step*.6,l=Math.min(o,cl)-step*.6;out.push({open:o,high:h,low:l,close:cl});p=cl}return out}
+ data={h4:series(40,2700,4),m15:series(60,2700,1.1),m1:series(80,2700,.25)};analyze();$('loadmsg').textContent='Illustrative demo candles loaded. This is NOT live market data and must not be traded.'};
+$('calc').onclick=()=>{let bal=+$('balance').value,e=+$('entry').value,s=+$('sl').value,t=+$('tp').value,r=Math.min(1,Math.max(0,+$('risk').value));if(!(bal>0&&e>0&&s>0&&t>0&&e!==s)){alert('Enter a valid balance, entry, stop loss and take profit.');return}
+ let cash=bal*r/100,dist=Math.abs(e-s),lot=cash/(dist*100),reward=Math.abs(t-e),rr=reward/dist;
+ $('riskcash').textContent='$'+cash.toFixed(2);$('lots').textContent=lot.toFixed(2)+' lots (raw '+lot.toFixed(4)+')';$('rr').textContent='1 : '+rr.toFixed(2);$('dist').textContent=dist.toFixed(2)};
+function getJournal(){try{return JSON.parse(localStorage.getItem('goldamn_journal')||'[]')}catch(e){return []}}
+function renderJournal(){let j=getJournal();$('journal').innerHTML=j.length?j.slice().reverse().map(x=>`<div class="log"><b>${escapeHTML(x.signal)}</b> · ${escapeHTML(x.date)}<br>${escapeHTML(x.note)}</div>`).join(''):'No journal entries yet.'}
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('save').onclick=()=>{let note=$('note').value.trim();if(!note){alert('Add a short trade note first.');return}let j=getJournal();j.push({signal:lastSignal,date:new Date().toLocaleString(),note});localStorage.setItem('goldamn_journal',JSON.stringify(j));$('note').value='';renderJournal()};
+renderJournal();
+</script><script>if ("serviceWorker" in navigator) { window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {})); }</script>
+</body></html>

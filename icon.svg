@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" rx="112" fill="#101827"/>
+<path d="M70 365h372" stroke="#35465f" stroke-width="18" stroke-linecap="round"/>
+<path d="M105 320l78-88 65 42 130-150" fill="none" stroke="#f4c45e" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M334 124h44v44" fill="none" stroke="#f4c45e" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="256" y="430" text-anchor="middle" font-family="Arial,sans-serif" font-size="54" font-weight="700" fill="#edf3fb">GOLD</text>
+</svg>
